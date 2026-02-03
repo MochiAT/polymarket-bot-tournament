@@ -112,25 +112,47 @@ class GammaClient:
             logger.info("Fetching Up/Down markets via web scraping")
             scraped_markets = self.scraper.get_active_updown_markets_with_details(max_markets=max_markets)
             
+            if not scraped_markets:
+                logger.warning("Web scraper returned no markets")
+                return []
+            
             # Convert scraped format to Gamma API compatible format
             gamma_format_markets = []
             for market in scraped_markets:
-                gamma_market = {
-                    "id": market.get("market_id"),
-                    "question": market.get("question"),
-                    "clobTokenIds": market.get("clobTokenIds", []),
-                    "active": True,  # Scraped from active page
-                    "closed": False,
-                    # Add any other fields we have
-                    "slug": market.get("slug"),
-                }
-                gamma_format_markets.append(gamma_market)
+                try:
+                    # Validate required fields
+                    market_id = market.get("market_id")
+                    question = market.get("question")
+                    clob_token_ids = market.get("clobTokenIds", [])
+                    
+                    if not market_id:
+                        logger.warning(f"Skipping market without ID: {market.get('slug')}")
+                        continue
+                    
+                    if not clob_token_ids or len(clob_token_ids) < 2:
+                        logger.warning(f"Skipping market {market_id} without valid clobTokenIds")
+                        continue
+                    
+                    gamma_market = {
+                        "id": market_id,
+                        "question": question or f"Up/Down market {market_id}",
+                        "clobTokenIds": clob_token_ids,
+                        "active": True,  # Scraped from active page
+                        "closed": False,
+                        # Add any other fields we have
+                        "slug": market.get("slug"),
+                    }
+                    gamma_format_markets.append(gamma_market)
+                
+                except Exception as e:
+                    logger.warning(f"Failed to convert scraped market to Gamma format: {e}")
+                    continue
             
-            logger.info(f"Successfully scraped {len(gamma_format_markets)} Up/Down markets")
+            logger.info(f"Successfully converted {len(gamma_format_markets)} scraped Up/Down markets")
             return gamma_format_markets
         
         except Exception as e:
-            logger.error(f"Error scraping Up/Down markets: {e}")
+            logger.error(f"Error scraping Up/Down markets: {e}", exc_info=True)
             return []
     
     def get_all_active_markets(self, max_markets: int = 1000, include_updown_scraping: bool = True) -> List[Dict]:
