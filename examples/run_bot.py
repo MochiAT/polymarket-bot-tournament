@@ -54,11 +54,15 @@ def main():
             
             # Print status
             metrics = engine.get_metrics()
+            equity = metrics.get("equity")
+            equity_str = f"${equity:.2f}" if isinstance(equity, (int, float)) else "N/A"
+
             logger.info(
-                f"Status: Trades={metrics['total_trades']}, "
-                f"PnL=${metrics['total_pnl']:.2f} ({metrics['pnl_percent']:.2f}%), "
-                f"Equity=${metrics['equity']:.2f}"
+                f"Status: Trades={metrics.get('total_trades', 0)}, "
+                f"PnL=${metrics.get('total_pnl', 0):.2f} ({metrics.get('pnl_percent', 0):.2f}%), "
+                f"Equity={equity_str}"
             )
+
     
     except KeyboardInterrupt:
         logger.info("Stopping bot...")
