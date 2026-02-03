@@ -180,28 +180,21 @@ class PaperTradingEngine(ExecutionEngine):
         return equity - self.initial_balance
     
     def get_metrics(self) -> Dict:
-        """Get performance metrics"""
+        """Get performance metrics - always returns equity key"""
         with self._lock:
             trades = self._filled_orders
             positions = list(self._positions.values())
             
-            total_trades = len(trades)
-            if total_trades == 0:
-                return {
-                    "total_trades": 0,
-                    "win_rate": 0.0,
-                    "total_pnl": 0.0,
-                    "pnl_percent": 0.0,
-                }
-            
-            # Calculate metrics
+            # Always calculate equity
             equity = self.get_equity()
             total_pnl = equity - self.initial_balance
-            pnl_percent = (total_pnl / self.initial_balance) * 100
+            pnl_percent = (total_pnl / self.initial_balance) * 100 if self.initial_balance > 0 else 0.0
+            
+            total_trades = len(trades)
             
             # Calculate win rate (rough estimate based on positive PnL)
-            wins = sum(1 for t in trades if t.status == OrderStatus.FILLED)
-            win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
+            wins = sum(1 for t in trades if t.status == OrderStatus.FILLED) if total_trades > 0 else 0
+            win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0.0
             
             return {
                 "strategy_name": self.strategy_name,
@@ -211,6 +204,6 @@ class PaperTradingEngine(ExecutionEngine):
                 "total_pnl": total_pnl,
                 "pnl_percent": pnl_percent,
                 "balance": self.balance,
-                "equity": equity,
+                "equity": equity,  # ALWAYS present
                 "initial_balance": self.initial_balance,
             }

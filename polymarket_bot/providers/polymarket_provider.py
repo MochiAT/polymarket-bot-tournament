@@ -84,6 +84,9 @@ class PolymarketProvider(MarketDataProvider):
         """Slow tick: Refresh market universe with diff"""
         logger.debug("Slow tick: Refreshing market universe")
         
+        # Reset discard statistics
+        self.market_parser.reset_discard_stats()
+        
         try:
             # Fetch all active markets from Gamma
             gamma_markets = self.gamma_client.get_all_active_markets()
